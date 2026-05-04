@@ -1,7 +1,10 @@
 ﻿using geekplace_adm.Services;
 using geekplace_adm.State;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using MudBlazor.Services;
+using System.Reflection;
+
 
 namespace geekplace_adm
 {
@@ -9,6 +12,7 @@ namespace geekplace_adm
     {
         public static MauiApp CreateMauiApp()
         {
+            
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
@@ -18,6 +22,20 @@ namespace geekplace_adm
                 });
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddMudServices();
+            // Charger la configuration à partir du fichier appsettings.Development.json (localhost), appsettings.json (production)
+            using var stream = FileSystem.OpenAppPackageFileAsync("appsettings.json").Result;
+
+            var config = new ConfigurationBuilder()
+                .AddJsonStream(stream)
+                .Build();
+
+            builder.Configuration.AddConfiguration(config);
+
+            var apiBaseUrl = builder.Configuration["Api:BaseUrl"];
+
+            if (string.IsNullOrWhiteSpace(apiBaseUrl))
+                throw new InvalidOperationException("La clé 'Api:BaseUrl' est manquante dans appsettings.json.");
+
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
@@ -30,7 +48,7 @@ namespace geekplace_adm
             builder.Services.AddScoped<StatsService>();
             builder.Services.AddScoped(sp => new HttpClient
             {
-                BaseAddress = new Uri("http://127.0.0.1:8000/")
+                BaseAddress = new Uri(apiBaseUrl)
             });
 
             return builder.Build();
