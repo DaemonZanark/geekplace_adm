@@ -1,0 +1,152 @@
+﻿@using MudBlazor
+@using geekplace_adm.Services
+@using geekplace_adm.State
+@implements IDisposable
+@inherits LayoutComponentBase
+@inject AuthState AuthState
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<MudThemeProvider Theme="@_theme" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout Class="layout-shell">
+    <MudAppBar Elevation="0" Dense="true" Class="topbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="DrawerToggle"
+                       Class="menu-button" />
+
+        <MudText Typo="Typo.h6" Class="app-title">
+            GeekPlace Admin
+        </MudText>
+
+        <MudSpacer />
+
+        @if (AuthState.IsAuthenticated && AuthState.IsAdmin)
+        {
+            <MudChip T="string"
+                     Variant="Variant.Outlined"
+                     Class="user-chip">
+                @AuthState.CurrentUser?.Name
+            </MudChip>
+        }
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen"
+               Variant="DrawerVariant.Responsive"
+               Breakpoint="Breakpoint.Md"
+               ClipMode="DrawerClipMode.Always"
+               Elevation="0"
+               Class="sidebar">
+
+        <MudDrawerHeader Class="sidebar-header">
+            <MudText Typo="Typo.h6" Class="brand-subtitle">
+                Espace d'administration
+            </MudText>
+        </MudDrawerHeader>
+
+        <MudNavMenu Class="nav-menu">
+            @if (AuthState.IsAuthenticated && AuthState.IsAdmin)
+            {
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+                    Dashboard
+                </MudNavLink>
+
+                <MudNavLink Href="/articles" Icon="@Icons.Material.Filled.Article">
+                    Articles
+                </MudNavLink>
+
+                <MudNavLink Href="/auteurs" Icon="@Icons.Material.Filled.People">
+                    Auteurs
+                </MudNavLink>
+
+                <MudNavLink Href="/statistiques" Icon="@Icons.Material.Filled.BarChart">
+                    Statistiques
+                </MudNavLink>
+
+                <MudNavLink Href="/categories" Icon="@Icons.Material.Filled.Category">
+                    Catégories
+                </MudNavLink>
+
+                <MudNavLink Href="/tags" Icon="@Icons.Material.Filled.LocalOffer">
+                    Tags
+                </MudNavLink>
+
+                <MudNavLink Href="/utilisateurs" Icon="@Icons.Material.Filled.Group">
+                    Utilisateurs
+                </MudNavLink>
+
+                <MudButton FullWidth="true"
+                           Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.Logout"
+                           Class="logout-button"
+                           OnClick="HandleLogout">
+                    Déconnexion
+                </MudButton>                
+            }
+            else
+            {
+                <MudNavLink Href="/connexion" Icon="@Icons.Material.Filled.Login">
+                    Connexion
+                </MudNavLink>
+            }
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Class="content-host">
+        <div class="content-scroll">
+            <MudContainer MaxWidth="MaxWidth.False" Class="content-container">
+                @Body
+            </MudContainer>
+        </div>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#c9a35b",
+            Secondary = "#9f9788",
+            Background = "#0a0a0a",
+            Surface = "#111111",
+            AppbarBackground = "#111111",
+            DrawerBackground = "#101010",
+            DrawerText = "#f3efe6",
+            TextPrimary = "#f3efe6",
+            TextSecondary = "#9f9788",
+            ActionDefault = "#d8d2c8",
+            ActionDisabled = "#5f5a52",
+            LinesDefault = "#2a2418",
+            LinesInputs = "#2a2418"
+        }
+    };
+
+    protected override void OnInitialized()
+    {
+        AuthState.OnChange += StateHasChanged;
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/connexion", true);
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= StateHasChanged;
+    }
+}

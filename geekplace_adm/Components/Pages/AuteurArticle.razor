@@ -1,0 +1,114 @@
+@page "/auteurs/{AuthorId:int}/articles"
+@using geekplace_adm.Models.Authors
+@inject geekplace_adm.Services.ArticleService ArticleService
+@inject NavigationManager Navigation
+
+<PageTitle>Publications de l'auteur</PageTitle>
+
+<div class="author-articles-page">
+    @if (_isLoading)
+    {
+        <div class="author-articles-loading">
+            <MudProgressCircular Indeterminate="true" Color="Color.Warning" Size="Size.Large" />
+        </div>
+    }
+    else if (_author is null)
+    {
+        <div class="author-articles-empty">
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                Impossible de charger les publications de cet auteur.
+            </MudAlert>
+        </div>
+    }
+    else
+    {
+        <div class="author-hero">
+            <button class="back-btn" @onclick="BackToAuthors">
+                ← Retour aux auteurs
+            </button>
+
+            <div class="author-identity">
+                <div class="author-avatar">
+                    @GetInitial(_author.Name)
+                </div>
+
+                <div class="author-meta">
+                    <h1>@_author.Name.ToUpper()</h1>
+                    <p>
+                        @_author.ArticlesCount publication@(_author.ArticlesCount > 1 ? "s" : "")
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        @if (_author.Articles.Count == 0)
+        {
+            <div class="author-articles-empty">
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Cet auteur n’a publié aucun article.
+                </MudAlert>
+            </div>
+        }
+        else
+        {
+            <div class="articles-grid">
+                @foreach (var article in _author.Articles)
+                {
+                    <div class="article-card">
+                        <div class="article-card-header">
+                            <div class="article-badge">ARTICLE</div>
+                            <div class="article-views">
+                                @article.ViewsCount vue@(article.ViewsCount > 1 ? "s" : "")
+                            </div>
+                        </div>
+
+                        <h2>@article.Title</h2>
+
+                        <div class="article-meta">
+                            Publié le @article.CreatedAt.ToString("dd/MM/yyyy")
+                        </div>
+
+                        <div class="article-actions">
+                            <button class="article-btn" @onclick="() => GoToArticle(article.Slug)">
+                                Voir l’article
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int AuthorId { get; set; }
+
+    private AuthorArticlesDto? _author;
+    private bool _isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        _author = await ArticleService.GetAuthorArticlesAsync(AuthorId);
+        _isLoading = false;
+    }
+
+    private void BackToAuthors()
+    {
+        Navigation.NavigateTo("/auteurs");
+    }
+
+    private void GoToArticle(string slug)
+    {
+        Navigation.NavigateTo($"/articles/{slug}");
+    }
+
+    private string GetInitial(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+
+        return name.Trim()[0].ToString().ToUpper();
+    }
+}

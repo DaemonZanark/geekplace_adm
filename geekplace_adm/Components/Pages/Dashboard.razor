@@ -1,0 +1,230 @@
+﻿@page "/"
+@using MudBlazor
+@using geekplace_adm.Models.Stats
+@using geekplace_adm.Services
+@using geekplace_adm.State
+@inject StatsService StatsService
+@inject AuthState AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard</PageTitle>
+
+@if (!AuthState.IsAuthenticated || !AuthState.IsAdmin)
+{
+    <MudText>Redirection...</MudText>
+}
+else if (_loading)
+{
+    <div class="dashboard-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true">
+        @_error
+    </MudAlert>
+}
+else if (_stats is not null)
+{
+    <div class="dashboard-page">
+        <div class="dashboard-header">
+            <div>
+                <MudText Typo="Typo.h3" Class="dashboard-title">Dashboard</MudText>
+                <MudText Typo="Typo.body2" Class="dashboard-subtitle">
+                    Vue d’ensemble de GeekPlace.
+                </MudText>
+            </div>
+        </div>
+
+        <MudGrid Class="kpi-grid">
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="kpi-card">
+                    <MudText Typo="Typo.caption" Class="kpi-label">Articles publiés</MudText>
+                    <MudText Typo="Typo.h3" Class="kpi-value">@_stats.Global.ArticlesTotal</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="kpi-card">
+                    <MudText Typo="Typo.caption" Class="kpi-label">Brouillons</MudText>
+                    <MudText Typo="Typo.h3" Class="kpi-value">@_stats.Global.ArticlesDraft</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="kpi-card">
+                    <MudText Typo="Typo.caption" Class="kpi-label">Vues totales</MudText>
+                    <MudText Typo="Typo.h3" Class="kpi-value">@_stats.Global.ViewsTotal</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="kpi-card">
+                    <MudText Typo="Typo.caption" Class="kpi-label">Commentaires</MudText>
+                    <MudText Typo="Typo.h3" Class="kpi-value">@_stats.Engagement.CommentsTotal</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Class="stats-sections">
+            <MudItem xs="12" md="6">
+                <MudPaper Class="dashboard-card section-card">
+                    <MudText Typo="Typo.h5" Class="section-title">Activité récente</MudText>
+
+                    <div class="stats-list">
+                        <div class="stats-row">
+                            <span>Articles sur 7 jours</span>
+                            <strong>@_stats.Recent.ArticlesLast7Days</strong>
+                        </div>
+                        <div class="stats-row">
+                            <span>Articles sur 30 jours</span>
+                            <strong>@_stats.Recent.ArticlesLast30Days</strong>
+                        </div>
+                        <div class="stats-row">
+                            <span>Commentaires sur 7 jours</span>
+                            <strong>@_stats.Recent.CommentsLast7Days</strong>
+                        </div>
+                        <div class="stats-row">
+                            <span>Commentaires sur 30 jours</span>
+                            <strong>@_stats.Recent.CommentsLast30Days</strong>
+                        </div>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Class="dashboard-card section-card">
+                    <MudText Typo="Typo.h5" Class="section-title">Communauté</MudText>
+
+                    <div class="stats-list">
+                        <div class="stats-row">
+                            <span>Utilisateurs</span>
+                            <strong>@_stats.Community.UsersTotal</strong>
+                        </div>
+                        <div class="stats-row">
+                            <span>Auteurs actifs</span>
+                            <strong>@_stats.Community.AuteursActifs</strong>
+                        </div>
+                        <div class="stats-row">
+                            <span>Abonnements</span>
+                            <strong>@_stats.Community.SubscriptionsTotal</strong>
+                        </div>
+                        <div class="stats-row">
+                            <span>Nouveaux abonnements 7 jours</span>
+                            <strong>@_stats.Community.SubscriptionsLast7Days</strong>
+                        </div>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudPaper Class="dashboard-card section-card">
+                    <div class="section-header">
+                        <MudText Typo="Typo.h5" Class="section-title">Activité sur 7 jours</MudText>
+                        <MudText Typo="Typo.body2" Class="section-subtitle">
+                            Articles, commentaires et likes par jour.
+                        </MudText>
+                    </div>
+
+                    @if (_activity is not null && _activity.Labels.Any())
+                    {
+                        <div class="activity-chart-wrapper">
+                            <MudChart T="double"
+                                      ChartType="ChartType.Line"
+                                      ChartSeries="@_activitySeries"
+                                      XAxisLabels="@_activityLabels"
+                                      Width="100%"
+                                      Height="350px"
+                                      Class="activity-chart" />
+                        </div>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">Aucune donnée d’activité disponible.</MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </div>
+}
+
+@code {
+    private DashboardStatsResponse? _stats;
+    private ActivityStatsResponse? _activity;
+    private bool _loading = true;
+    private string _error = string.Empty;
+
+    private List<ChartSeries<double>> _activitySeries = new();
+    private string[] _activityLabels = Array.Empty<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthState.IsAuthenticated || !AuthState.IsAdmin)
+        {
+            Navigation.NavigateTo("/connexion");
+            return;
+        }
+
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        _loading = true;
+        _error = string.Empty;
+
+        try
+        {
+            _stats = await StatsService.GetDashboardStatsAsync();
+            _activity = await StatsService.GetActivityStatsAsync();
+
+            if (_stats is null)
+            {
+                _error = "Impossible de charger les statistiques.";
+                return;
+            }
+
+            PrepareActivityChart();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Erreur lors du chargement du dashboard : {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void PrepareActivityChart()
+    {
+        if (_activity is null || !_activity.Labels.Any())
+        {
+            _activitySeries = new();
+            _activityLabels = Array.Empty<string>();
+            return;
+        }
+
+        _activityLabels = _activity.Labels.ToArray();
+
+        _activitySeries = new List<ChartSeries<double>>
+        {
+            new()
+            {
+                Name = "Articles",
+                Data = _activity.Articles.Select(x => (double)x).ToList()
+            },
+            new()
+            {
+                Name = "Commentaires",
+                Data = _activity.Commentaires.Select(x => (double)x).ToList()
+            },
+            new()
+            {
+                Name = "Likes",
+                Data = _activity.Likes.Select(x => (double)x).ToList()
+            }
+        };
+    }
+}

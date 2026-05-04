@@ -1,0 +1,281 @@
+@page "/articles/{Slug}"
+@using MudBlazor
+@using geekplace_adm.Services
+@inject ArticleService ArticleService
+@inject NavigationManager Navigation
+
+<PageTitle>@(Article is null ? "Article" : Article.Title)</PageTitle>
+
+@if (_loading)
+{
+    <div class="dashboard-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true">
+        @_error
+    </MudAlert>
+}
+else if (Article is null)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+        Article introuvable.
+    </MudAlert>
+}
+else
+{
+    <div class="articleview-page">
+        <div class="articleview-header">
+            <div class="articleview-meta-left">
+                <MudText Typo="Typo.h4" Class="articleview-title">@Article.Title</MudText>
+
+                <MudText Typo="Typo.caption" Class="articleview-subtitle">
+                    Par @Article.AuthorName · @Article.CreatedAt.ToString("dd/MM/yyyy") · @Article.ViewsCount vues · @($"~{Article.ReadingTime}") min de lecture
+                </MudText>
+
+                <div class="articleview-chips">
+                    @foreach (var cat in Article.Categories)
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Default"
+                                 Variant="Variant.Outlined"
+                                 Class="articleview-chip-category">
+                            @cat.Name
+                        </MudChip>
+                    }
+
+                    @foreach (var tag in Article.Tags)
+                    {
+                        <MudChip T="string"
+                                 Color="Color.Primary"
+                                 Variant="Variant.Outlined"
+                                 Class="articleview-chip-tag">
+                            @($"#{tag.Name}")
+                        </MudChip>
+                    }
+                </div>
+            </div>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="BackToList">
+                Retour aux articles
+            </MudButton>
+        </div>
+
+        <MudPaper Class="articleview-content-card">
+            <div class="articleview-content">
+                @Article.Content
+            </div>
+        </MudPaper>
+
+        <MudPaper Class="articleview-comments-card">
+            <div class="articleview-comments-header">
+                <MudText Typo="Typo.h5" Class="articleview-comments-title">
+                    Commentaires (@Comments.Count)
+                </MudText>
+            </div>
+
+            @if (Comments.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="articleview-no-comments">
+                    Aucun commentaire publié pour le moment.
+                </MudText>
+            }
+            else
+            {
+                <div class="articleview-comments-list">
+                    @foreach (var comment in Comments)
+                    {
+                        <div class="articleview-comment">
+                            <div class="comment-header">
+                                <div class="comment-user">
+                                    <MudAvatar Class="comment-avatar">
+                                        @GetInitials(comment.UserName)
+                                    </MudAvatar>
+
+                                    <div class="comment-meta">
+                                        <MudText Typo="Typo.subtitle2" Class="comment-author">
+                                            @comment.UserName
+                                        </MudText>
+
+                                        <MudText Typo="Typo.caption" Class="comment-date">
+                                            @comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                        </MudText>
+                                    </div>
+                                </div>
+
+                                <div class="comment-actions">
+                                    <MudButton Variant="Variant.Text"
+                                               Color="Color.Error"
+                                               Disabled="@_deletingCommentIds.Contains(comment.Id)"
+                                               OnClick="@(() => DeleteCommentAsync(comment.Id))">
+                                        SUPPRIMER
+                                    </MudButton>
+                                </div>
+                            </div>
+
+                            <MudText Typo="Typo.body2" Class="comment-content">
+                                @comment.Content
+                            </MudText>
+                        </div>
+                    }
+                </div>
+            }
+        </MudPaper>
+    </div>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+
+    private bool _loading = true;
+    private string _error = string.Empty;
+
+    private ArticleDetail? Article;
+    private List<ArticleCommentItem> Comments = new();
+    private HashSet<int> _deletingCommentIds = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadArticleAsync();
+    }
+
+    private async Task LoadArticleAsync()
+    {
+        _loading = true;
+        _error = string.Empty;
+
+        try
+        {
+            var dto = await ArticleService.GetArticleBySlugAsync(Slug);
+
+            if (dto is null)
+            {
+                Article = null;
+                Comments = new();
+                return;
+            }
+
+            Article = new ArticleDetail
+            {
+                Id = dto.Id,
+                Title = dto.Title,
+                Slug = dto.Slug,
+                Content = dto.Content ?? string.Empty,
+                ViewsCount = dto.Views_Count,
+                ReadingTime = dto.Reading_Time,
+                CreatedAt = dto.CreatedAtDateTime,
+                AuthorName = dto.Auteur?.Name ?? "Inconnu",
+                Categories = dto.Categories.Select(c => new CategoryFilterItem
+                {
+                    Id = c.Id,
+                    Name = c.Name
+                }).ToList(),
+                Tags = dto.Tags.Select(t => new TagFilterItem
+                {
+                    Id = t.Id,
+                    Name = t.Name
+                }).ToList()
+            };
+
+            Comments = dto.Commentaires.Select(c => new ArticleCommentItem
+            {
+                Id = c.Id,
+                UserId = c.User_Id,
+                UserName = c.User?.Name ?? "Inconnu",
+                Content = c.Content,
+                CreatedAt = c.CreatedAtDateTime
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Erreur lors du chargement de l'article : {ex.Message}";
+            Article = null;
+            Comments = new();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("/articles");
+    }
+
+    private string GetInitials(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+            return "?";
+
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length == 1)
+            return parts[0][0].ToString().ToUpper();
+
+        return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+    }
+
+    private async Task DeleteCommentAsync(int commentId)
+    {
+        if (_deletingCommentIds.Contains(commentId))
+            return;
+
+        _deletingCommentIds.Add(commentId);
+
+        try
+        {
+            await ArticleService.DeleteCommentAsync(commentId);
+
+            Comments = Comments.Where(c => c.Id != commentId).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Erreur lors de la suppression du commentaire : {ex.Message}";
+        }
+        finally
+        {
+            _deletingCommentIds.Remove(commentId);
+        }
+    }
+
+    public class ArticleDetail
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Slug { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public int ViewsCount { get; set; }
+        public int ReadingTime { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string AuthorName { get; set; } = string.Empty;
+        public List<CategoryFilterItem> Categories { get; set; } = new();
+        public List<TagFilterItem> Tags { get; set; } = new();
+    }
+
+    public class ArticleCommentItem
+    {
+        public int Id { get; set; }
+        public int? UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class CategoryFilterItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class TagFilterItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+}

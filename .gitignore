@@ -1,0 +1,28 @@
+# Build
+bin/
+obj/
+Debug/
+Release/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+
+# User-specific files
+*.user
+*.suo
+*.DotSettings.user
+*.sln.docstates
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local env / config
+.env
+.env.*
+appsettings.Local.json
+appsettings.Development.json

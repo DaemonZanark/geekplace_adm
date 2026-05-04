@@ -1,0 +1,99 @@
+.authors-page {
+    padding: 2rem;
+    color: #f5efe4;
+}
+
+.authors-header {
+    margin-bottom: 2rem;
+}
+
+    .authors-header h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+        color: #f6ead7;
+    }
+
+    .authors-header p {
+        color: #b9ab90;
+        font-size: 1rem;
+    }
+
+.authors-loading,
+.authors-empty {
+    margin-top: 2rem;
+}
+
+.authors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
+}
+
+.author-card {
+    background: linear-gradient(180deg, rgba(22,18,14,0.96) 0%, rgba(14,12,10,0.98) 100%);
+    border: 1px solid rgba(201, 162, 92, 0.22);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    padding: 2rem 1.5rem;
+    min-height: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .author-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(201, 162, 92, 0.45);
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+    }
+
+.author-avatar {
+    width: 110px;
+    height: 110px;
+    background: linear-gradient(180deg, #c8a25a 0%, #b78f47 100%);
+    color: #16120d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1.75rem;
+}
+
+.author-name {
+    font-size: 1.8rem;
+    font-style: italic;
+    font-weight: 700;
+    color: #d2a85f;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.author-count {
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7f88aa;
+    margin-bottom: 2rem;
+}
+
+.author-btn {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    background: transparent;
+    border: 1px solid #b88f49;
+    color: #d6aa5d;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .author-btn:hover {
+        background: rgba(184, 143, 73, 0.12);
+        border-color: #d8ab61;
+        color: #f2cc86;
+    }

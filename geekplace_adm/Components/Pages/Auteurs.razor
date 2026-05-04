@@ -1,0 +1,77 @@
+﻿@page "/auteurs"
+@using geekplace_adm.Models.Authors
+@inject geekplace_adm.Services.ArticleService ArticleService
+@inject NavigationManager Navigation
+
+<PageTitle>Auteurs</PageTitle>
+
+<div class="authors-page">
+    <div class="authors-header">
+        <h1>Auteurs</h1>
+        <p>Consultez les profils auteurs et accédez à leurs publications.</p>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="authors-loading">
+            <MudProgressCircular Indeterminate="true" Color="Color.Warning" Size="Size.Large" />
+        </div>
+    }
+    else if (_authors.Count == 0)
+    {
+        <div class="authors-empty">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                Aucun auteur disponible pour le moment.
+            </MudAlert>
+        </div>
+    }
+    else
+    {
+        <div class="authors-grid">
+            @foreach (var author in _authors)
+            {
+                <div class="author-card">
+                    <div class="author-avatar">
+                        @GetInitial(author.Name)
+                    </div>
+
+                    <div class="author-name">
+                        @author.Name.ToUpper()
+                    </div>
+
+                    <div class="author-count">
+                        @author.ArticlesCount article@(author.ArticlesCount > 1 ? "s" : "")
+                    </div>
+
+                    <button class="author-btn" @onclick="() => ViewPublications(author.Id)">
+                        Voir les publications
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<AuthorDto> _authors = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _authors = await ArticleService.GetAuthorsAsync();
+        _isLoading = false;
+    }
+
+    private void ViewPublications(int authorId)
+    {
+        Navigation.NavigateTo($"/auteurs/{authorId}/articles");
+    }
+
+    private string GetInitial(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+
+        return name.Trim()[0].ToString().ToUpper();
+    }
+}

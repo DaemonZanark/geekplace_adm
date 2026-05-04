@@ -1,0 +1,459 @@
+﻿@page "/articles"
+@using MudBlazor
+@using geekplace_adm.Services
+@inject ArticleService ArticleService
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<PageTitle>Articles</PageTitle>
+
+@if (_loading)
+{
+    <div class="dashboard-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true">
+        @_error
+    </MudAlert>
+}
+else
+{
+    <div class="articles-page">
+        <div class="articles-header">
+            <div>
+                <MudText Typo="Typo.h3" Class="articles-title">Articles</MudText>
+                <MudText Typo="Typo.body2" Class="articles-subtitle">
+                    Gérez les articles, leurs auteurs et leur statut de publication.
+                </MudText>
+            </div>
+        </div>
+
+        <MudPaper Class="articles-toolbar">
+            <MudGrid Class="articles-toolbar-grid" AlignItems="AlignItems.Center">
+                <MudItem xs="12" md="5">
+                    <MudTextField @bind-Value="_search"
+                                  Placeholder="Rechercher un article, un auteur..."
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  FullWidth="true"
+                                  Class="toolbar-field" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="2">
+                    <MudSelect T="string"
+                               @bind-Value="_statusFilter"
+                               Label="Statut"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               FullWidth="true"
+                               Class="toolbar-field">
+                        <MudSelectItem T="string" Value="@("all")">Tous</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("published")">Publié</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("draft")">Brouillon</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="2">
+                    <MudSelect T="string"
+                               @bind-Value="_categoryFilter"
+                               Label="Catégorie"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               FullWidth="true"
+                               Class="toolbar-field">
+                        <MudSelectItem T="string" Value="@("all")">Toutes</MudSelectItem>
+                        @foreach (var cat in _categories)
+                        {
+                            <MudSelectItem T="string" Value="@cat.Id.ToString()">@cat.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="2">
+                    <MudSelect T="string"
+                               @bind-Value="_tagFilter"
+                               Label="Tag"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               FullWidth="true"
+                               Class="toolbar-field">
+                        <MudSelectItem T="string" Value="@("all")">Tous</MudSelectItem>
+                        @foreach (var tag in _tags)
+                        {
+                            <MudSelectItem T="string" Value="@tag.Id.ToString()">@tag.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="2">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               Class="toolbar-reset-btn"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               OnClick="ResetFilters">
+                        Réinitialiser
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudPaper Class="articles-table-card">
+            <MudTable Items="@FilteredArticles"
+                      Hover="true"
+                      Striped="true"
+                      Dense="false"
+                      Elevation="0"
+                      Class="articles-table">
+
+                <HeaderContent>
+                    <MudTh>Article</MudTh>
+                    <MudTh>Auteur</MudTh>
+                    <MudTh>Statut</MudTh>
+                    <MudTh>Date</MudTh>
+                    <MudTh>Vues</MudTh>
+                    <MudTh Align="Align.Right">Actions</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="Article">
+                        <div class="article-cell">
+                            <MudText Typo="Typo.subtitle2" Class="article-title">@context.Title</MudText>
+                            <MudText Typo="Typo.body2" Class="article-excerpt">@GetExcerpt(context.Content)</MudText>
+
+                            @if (context.Categories.Any())
+                            {
+                                <MudText Typo="Typo.caption" Class="article-categories">
+                                    @string.Join(" · ", context.Categories.Select(c => c.Name))
+                                </MudText>
+                            }
+
+                            @if (context.Tags.Any())
+                            {
+                                <MudText Typo="Typo.caption" Class="article-tags">
+                                    #@string.Join("  #", context.Tags.Select(t => t.Name))
+                                </MudText>
+                            }
+                        </div>
+                    </MudTd>
+
+                    <MudTd DataLabel="Auteur">
+                        <div class="author-cell">
+                            <MudAvatar Size="Size.Medium" Class="author-avatar">
+                                @GetInitials(context.AuthorName)
+                            </MudAvatar>
+                            <div class="author-meta">
+                                <MudText Typo="Typo.body1">@context.AuthorName</MudText>
+                                @if (!string.IsNullOrWhiteSpace(context.AuthorEmail))
+                                {
+                                    <MudText Typo="Typo.caption" Class="author-email">@context.AuthorEmail</MudText>
+                                }
+                            </div>
+                        </div>
+                    </MudTd>
+
+                    <MudTd DataLabel="Statut">
+                        <MudChip T="string"
+                                 Value="@GetStatusLabel(context.Draft)"
+                                 Variant="Variant.Outlined"
+                                 Class="@GetStatusClass(context.Draft)">
+                            @GetStatusLabel(context.Draft)
+                        </MudChip>
+                    </MudTd>
+
+                    <MudTd DataLabel="Date">
+                        <MudText Typo="Typo.body2">@context.CreatedAt.ToString("dd/MM/yyyy")</MudText>
+                    </MudTd>
+
+                    <MudTd DataLabel="Vues">
+                        <MudText Typo="Typo.body2">@context.ViewsCount</MudText>
+                    </MudTd>
+
+                    <MudTd DataLabel="Actions" Align="Align.Right">
+                        <div class="article-actions">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                           Color="Color.Primary"
+                                           Size="Size.Medium"
+                                           OnClick="@(() => Navigation.NavigateTo($"/articles/{context.Slug}"))" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Medium"
+                                           OnClick="@(() => ConfirmDeleteArticle(context))"/>
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <div class="articles-pager">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           Disabled="@(_currentPage <= 1 || _loading)"
+                           OnClick="PrevPage">
+                    &laquo; Précédent
+                </MudButton>
+
+                <MudText Typo="Typo.body2" Class="articles-pager-info">
+                    Page @_currentPage / @_lastPage (@_total articles)
+                </MudText>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           Disabled="@(_currentPage >= _lastPage || _loading)"
+                           OnClick="NextPage">
+                    Suivant &raquo;
+                </MudButton>
+            </div>
+        </MudPaper>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private string _error = string.Empty;
+
+    private string _search = string.Empty;
+    private string _statusFilter = "all";
+    private string _categoryFilter = "all";
+    private string _tagFilter = "all";
+
+    private List<ArticleAdminItem> _articles = new();
+    private List<CategoryFilterItem> _categories = new();
+    private List<TagFilterItem> _tags = new();
+
+    private int _currentPage = 1;
+    private int _lastPage = 1;
+    private int _total = 0;
+
+    private IEnumerable<ArticleAdminItem> FilteredArticles =>
+        _articles.Where(a =>
+            (string.IsNullOrWhiteSpace(_search)
+             || a.Title.Contains(_search, StringComparison.OrdinalIgnoreCase)
+             || a.AuthorName.Contains(_search, StringComparison.OrdinalIgnoreCase))
+            &&
+            (_statusFilter == "all"
+             || (_statusFilter == "published" && !a.Draft)
+             || (_statusFilter == "draft" && a.Draft))
+            &&
+            (_categoryFilter == "all"
+             || a.Categories.Any(c => c.Id.ToString() == _categoryFilter))
+            &&
+            (_tagFilter == "all"
+             || a.Tags.Any(t => t.Id.ToString() == _tagFilter)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadArticlesAsync(1);
+    }
+
+    private async Task LoadArticlesAsync(int page)
+    {
+        _loading = true;
+        _error = string.Empty;
+
+        try
+        {
+            var response = await ArticleService.GetArticlesAsync(page);
+
+            if (response?.Data is null)
+            {
+                _articles = new();
+                _categories = new();
+                _tags = new();
+                _currentPage = 1;
+                _lastPage = 1;
+                _total = 0;
+                return;
+            }
+
+            _currentPage = response.Current_Page;
+            _lastPage = response.Last_Page;
+            _total = response.Total;
+
+            _articles = response.Data.Select(a => new ArticleAdminItem
+            {
+                Id = a.Id,
+                UserId = a.User_Id,
+                Title = a.Title,
+                Slug = a.Slug,
+                Content = a.Content ?? string.Empty,
+                Image = a.Image ?? string.Empty,
+                Draft = a.Draft,
+                CreatedAt = a.Created_At,
+                UpdatedAt = a.Updated_At,
+                ViewsCount = a.Views_Count,
+                AuthorName = a.User?.Name ?? "Inconnu",
+                AuthorEmail = string.Empty,
+                Categories = a.Categories
+                    .Select(c => new CategoryFilterItem
+                    {
+                        Id = c.Id,
+                        Name = c.Name
+                    })
+                    .ToList(),
+                Tags = a.Tags
+                    .Select(t => new TagFilterItem
+                    {
+                        Id = t.Id,
+                        Name = t.Name
+                    })
+                    .ToList()
+            }).ToList();
+
+            _categories = _articles
+                .SelectMany(a => a.Categories)
+                .GroupBy(c => c.Id)
+                .Select(g => new CategoryFilterItem
+                {
+                    Id = g.Key,
+                    Name = g.First().Name
+                })
+                .OrderBy(c => c.Name)
+                .ToList();
+
+            _tags = _articles
+                .SelectMany(a => a.Tags)
+                .GroupBy(t => t.Id)
+                .Select(g => new TagFilterItem
+                {
+                    Id = g.Key,
+                    Name = g.First().Name
+                })
+                .OrderBy(t => t.Name)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Erreur lors du chargement des articles : {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ResetFilters()
+    {
+        _search = string.Empty;
+        _statusFilter = "all";
+        _categoryFilter = "all";
+        _tagFilter = "all";
+    }
+
+    private string GetInitials(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+            return "?";
+
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1)
+            return parts[0][0].ToString().ToUpper();
+
+        return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+    }
+
+    private string GetStatusLabel(bool draft) => draft ? "Brouillon" : "Publié";
+
+    private string GetStatusClass(bool draft) => draft ? "status-draft" : "status-published";
+
+    private string GetExcerpt(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return string.Empty;
+
+        const int max = 120;
+        var text = content.Replace("\r", " ").Replace("\n", " ").Trim();
+        return text.Length <= max ? text : text[..max] + "…";
+    }
+
+    private async Task PrevPage()
+    {
+        if (_currentPage <= 1 || _loading)
+            return;
+
+        await LoadArticlesAsync(_currentPage - 1);
+    }
+
+    private async Task NextPage()
+    {
+        if (_currentPage >= _lastPage || _loading)
+            return;
+
+        await LoadArticlesAsync(_currentPage + 1);
+    }
+
+
+    private HashSet<int> _deletingArticleIds = new();
+
+    private async Task ConfirmDeleteArticle(ArticleAdminItem article)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Suppression de l'article",
+            $"Voulez-vous vraiment supprimer l'article \"{article.Title}\" ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+
+        if (result == true)
+        {
+            await DeleteArticleAsync(article.Id);
+        }
+    }
+
+    private async Task DeleteArticleAsync(int articleId)
+    {
+        if (_deletingArticleIds.Contains(articleId))
+            return;
+
+        _deletingArticleIds.Add(articleId);
+
+        try
+        {
+            await ArticleService.DeleteArticleAsync(articleId);
+            _articles = _articles.Where(a => a.Id != articleId).ToList();
+            _total = Math.Max(0, _total - 1);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Erreur lors de la suppression de l'article : {ex.Message}";
+        }
+        finally
+        {
+            _deletingArticleIds.Remove(articleId);
+        }
+    }
+
+    public class TagFilterItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class ArticleAdminItem
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Slug { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public string Image { get; set; } = string.Empty;
+        public bool Draft { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public int ViewsCount { get; set; }
+        public string AuthorName { get; set; } = string.Empty;
+        public string AuthorEmail { get; set; } = string.Empty;
+        public List<CategoryFilterItem> Categories { get; set; } = new();
+        public List<TagFilterItem> Tags { get; set; } = new();
+    }
+
+    public class CategoryFilterItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+}

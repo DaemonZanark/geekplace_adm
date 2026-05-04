@@ -1,0 +1,96 @@
+﻿@page "/connexion"
+@inject geekplace_adm.Services.AuthService AuthService
+@inject NavigationManager Navigation
+@inject geekplace_adm.State.AuthState AuthState
+
+<PageTitle>Connexion</PageTitle>
+
+<MudPaper Class="pa-6 mx-auto mt-12" Style="max-width:420px;">
+    <MudText Typo="Typo.h4" Class="mb-2">Connexion admin</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4">
+        Connecte-toi avec un compte administrateur.
+    </MudText>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">
+            @_errorMessage
+        </MudAlert>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <MudAlert Severity="Severity.Success" Dense="true" Class="mb-4">
+            @_successMessage
+        </MudAlert>
+    }
+
+    <MudTextField @bind-Value="_email"
+                  Label="Email"
+                  Variant="Variant.Outlined"
+                  Immediate="true"
+                  Class="mb-3" />
+
+    <MudTextField @bind-Value="_password"
+                  Label="Mot de passe"
+                  InputType="InputType.Password"
+                  Variant="Variant.Outlined"
+                  Immediate="true"
+                  Class="mb-4" />
+
+    <MudButton FullWidth="true"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               Loading="_loading"
+               Disabled="_loading"
+               OnClick="HandleLogin">
+        Se connecter
+    </MudButton>
+</MudPaper>
+
+@code {
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private string _errorMessage = string.Empty;
+    private string _successMessage = string.Empty;
+    private bool _loading;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && AuthState.IsAuthenticated && AuthState.IsAdmin)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        _loading = true;
+        _errorMessage = string.Empty;
+        _successMessage = string.Empty;
+
+        try
+        {
+            var (success, message) = await AuthService.LoginAsync(_email, _password);
+
+            if (!success)
+            {
+                _errorMessage = message;
+                return;
+            }
+
+            _successMessage = message;
+            await Task.Delay(700);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Erreur de connexion à l'API : {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}
