@@ -1,6 +1,137 @@
 ﻿@page "/utilisateurs"
+@using geekplace_adm.Services
+@inject UserService UserService
 
 <PageTitle>Utilisateurs</PageTitle>
 
-<h1>Utilisateurs</h1>
-<p>Gestion des utilisateurs.</p>
+<div class="users-page">
+    <div class="users-header">
+        <h1>Utilisateurs</h1>
+        <p>Gérez les comptes de la plateforme et supprimez les profils qui ne doivent plus être conservés.</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="users-feedback error">
+            @_errorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <div class="users-feedback success">
+            @_successMessage
+        </div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="users-loading">
+            <MudProgressCircular Indeterminate="true" Color="Color.Warning" Size="Size.Large" />
+        </div>
+    }
+    else if (_users.Count == 0)
+    {
+        <div class="users-empty">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                Aucun utilisateur disponible.
+            </MudAlert>
+        </div>
+    }
+    else
+    {
+        <div class="users-grid">
+            @foreach (var user in _users)
+            {
+                <div class="user-card">
+                    <div class="user-card-glow"></div>
+
+                    <div class="user-card-top">
+                        <div class="user-avatar">
+                            @GetInitial(user.Name)
+                        </div>
+
+                        <button class="user-delete-btn"
+                                @onclick="() => DeleteUserAsync(user.Id)">
+                            Supprimer
+                        </button>
+                    </div>
+
+                    <div class="user-content">
+                        <div class="user-role @(user.IsAdminValue ? "admin" : "standard")">
+                            @(user.IsAdminValue ? "Administrateur" : "Utilisateur")
+                        </div>
+
+                        <div class="user-name">
+                            @user.Name.ToUpper()
+                        </div>
+
+                        <div class="user-email">
+                            @(string.IsNullOrWhiteSpace(user.Email) ? "Aucun email renseigné" : user.Email)
+                        </div>
+                    </div>
+
+                    <div class="user-footer">
+                        <div class="user-footer-line"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<UserDto> _users = new();
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _users = await UserService.GetUsersAsync();
+        }
+        catch
+        {
+            _errorMessage = "Impossible de charger les utilisateurs.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task DeleteUserAsync(int userId)
+    {
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            await UserService.DeleteUserAsync(userId);
+            _successMessage = "Utilisateur supprimé avec succès.";
+            await LoadUsersAsync();
+        }
+        catch
+        {
+            _errorMessage = "Impossible de supprimer l'utilisateur.";
+        }
+    }
+
+    private string GetInitial(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+
+        return name.Trim()[0].ToString().ToUpper();
+    }
+}

@@ -1,6 +1,134 @@
 ﻿@page "/categories"
+@inject geekplace_adm.Services.CategoryService CategoryService
 
 <PageTitle>Catégories</PageTitle>
 
-<h1>Catégories</h1>
-<p>Gestion des catégories.</p>
+<div class="categories-page">
+    <div class="categories-header">
+        <h1>Catégories</h1>
+        <p>Consultez les catégories disponibles et supprimez celles qui ne sont plus utiles.</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="categories-feedback error">
+            @_errorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <div class="categories-feedback success">
+            @_successMessage
+        </div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="categories-loading">
+            <MudProgressCircular Indeterminate="true" Color="Color.Warning" Size="Size.Large" />
+        </div>
+    }
+    else if (_categories.Count == 0)
+    {
+        <div class="categories-empty">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                Aucune catégorie disponible.
+            </MudAlert>
+        </div>
+    }
+    else
+    {
+        <div class="categories-grid">
+            @foreach (var category in _categories)
+            {
+                <div class="category-card">
+                    <div class="category-card-glow"></div>
+
+                    <div class="category-card-top">
+                        <div class="category-icon">
+                            @GetInitial(category.Name)
+                        </div>
+
+                        <button class="category-delete-btn"
+                                @onclick="() => DeleteCategoryAsync(category.Id)">
+                            Supprimer
+                        </button>
+                    </div>
+
+                    <div class="category-content">
+                        <div class="category-label">CATÉGORIE</div>
+
+                        <div class="category-name">
+                            @category.Name.ToUpper()
+                        </div>
+
+                        <div class="category-count">
+                            @category.ArticlesCount article@(category.ArticlesCount > 1 ? "s" : "")
+                        </div>
+                    </div>
+
+                    <div class="category-footer">
+                        <div class="category-footer-line"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<geekplace_adm.Services.CategoryDto> _categories = new();
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategoriesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _categories = await CategoryService.GetCategoriesAsync();
+        }
+        catch
+        {
+            _errorMessage = "Impossible de charger les catégories.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task DeleteCategoryAsync(int categoryId)
+    {
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            await CategoryService.DeleteCategoryAsync(categoryId);
+            _successMessage = "Catégorie supprimée avec succès.";
+            await LoadCategoriesAsync();
+        }
+        catch
+        {
+            _errorMessage = "Impossible de supprimer la catégorie.";
+        }
+    }
+
+    private string GetInitial(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+
+        return name.Trim()[0].ToString().ToUpper();
+    }
+}

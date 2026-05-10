@@ -1,6 +1,135 @@
 ﻿@page "/tags"
+@using geekplace_adm.Services
+@inject TagService TagService
 
 <PageTitle>Tags</PageTitle>
 
-<h1>Tags</h1>
-<p>Gestion des tags.</p>
+<div class="tags-page">
+    <div class="tags-header">
+        <h1>Tags</h1>
+        <p>Consultez les tags disponibles et supprimez ceux qui ne sont plus utiles.</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="tags-feedback error">
+            @_errorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <div class="tags-feedback success">
+            @_successMessage
+        </div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="tags-loading">
+            <MudProgressCircular Indeterminate="true" Color="Color.Warning" Size="Size.Large" />
+        </div>
+    }
+    else if (_tags.Count == 0)
+    {
+        <div class="tags-empty">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                Aucun tag disponible.
+            </MudAlert>
+        </div>
+    }
+    else
+    {
+        <div class="tags-grid">
+            @foreach (var tag in _tags)
+            {
+                <div class="tag-card">
+                    <div class="tag-card-glow"></div>
+
+                    <div class="tag-card-top">
+                        <div class="tag-icon">
+                            @GetInitial(tag.Name)
+                        </div>
+
+                        <button class="tag-delete-btn"
+                                @onclick="() => DeleteTagAsync(tag.Id)">
+                            Supprimer
+                        </button>
+                    </div>
+
+                    <div class="tag-content">
+                        <div class="tag-label">TAG</div>
+
+                        <div class="tag-name">
+                            @tag.Name.ToUpper()
+                        </div>
+
+                        <div class="tag-count">
+                            @tag.ArticlesCount article@(tag.ArticlesCount > 1 ? "s" : "")
+                        </div>
+                    </div>
+
+                    <div class="tag-footer">
+                        <div class="tag-footer-line"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<TagDto> _tags = new();
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTagsAsync();
+    }
+
+    private async Task LoadTagsAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _tags = await TagService.GetTagsAsync();
+        }
+        catch
+        {
+            _errorMessage = "Impossible de charger les tags.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task DeleteTagAsync(int tagId)
+    {
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            await TagService.DeleteTagAsync(tagId);
+            _successMessage = "Tag supprimé avec succès.";
+            await LoadTagsAsync();
+        }
+        catch
+        {
+            _errorMessage = "Impossible de supprimer le tag.";
+        }
+    }
+
+    private string GetInitial(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+
+        return name.Trim()[0].ToString().ToUpper();
+    }
+}

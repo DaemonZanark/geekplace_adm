@@ -41,11 +41,12 @@ namespace geekplace_adm
     		builder.Logging.AddDebug();
 #endif
             builder.Services.AddSingleton<AuthState>();
-            builder.Services.AddSingleton<AuthState>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<ArticleService>();
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<StatsService>();
+            builder.Services.AddScoped<TagService>();
+            builder.Services.AddScoped<CategoryService>();
             builder.Services.AddScoped(sp => new HttpClient
             {
                 BaseAddress = new Uri(apiBaseUrl)

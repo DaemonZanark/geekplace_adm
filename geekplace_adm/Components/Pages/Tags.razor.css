@@ -1,0 +1,204 @@
+.tags-page {
+    padding: 2.2rem 2rem;
+    color: #f5efe4;
+    min-height: 100%;
+}
+
+.tags-header {
+    margin-bottom: 2rem;
+}
+
+    .tags-header h1 {
+        margin: 0 0 0.35rem 0;
+        font-size: 3rem;
+        font-weight: 700;
+        color: #f6ead7;
+        letter-spacing: -0.02em;
+    }
+
+    .tags-header p {
+        margin: 0;
+        color: #b6a588;
+        font-size: 1.05rem;
+        max-width: 720px;
+    }
+
+.tags-feedback {
+    margin-bottom: 1.25rem;
+    padding: 0.95rem 1.1rem;
+    border: 1px solid transparent;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+}
+
+    .tags-feedback.success {
+        background: rgba(128, 101, 45, 0.10);
+        border-color: rgba(210, 168, 95, 0.28);
+        color: #e1bf7a;
+    }
+
+    .tags-feedback.error {
+        background: rgba(122, 39, 39, 0.14);
+        border-color: rgba(214, 117, 117, 0.28);
+        color: #ef9e9e;
+    }
+
+.tags-loading,
+.tags-empty {
+    margin-top: 2rem;
+}
+
+.tags-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.6rem;
+}
+
+.tag-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(22, 17, 13, 0.98) 0%, rgba(12, 10, 8, 1) 100%);
+    border: 1px solid rgba(201, 162, 92, 0.18);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 220, 160, 0.03);
+    padding: 1.6rem;
+    min-height: 330px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+    .tag-card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(210, 168, 95, 0.40);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(210, 168, 95, 0.08);
+    }
+
+.tag-card-glow {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, rgba(210, 168, 95, 0.10) 0%, rgba(210, 168, 95, 0) 70%);
+    pointer-events: none;
+}
+
+.tag-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.tag-icon {
+    width: 108px;
+    height: 108px;
+    background: linear-gradient(180deg, #cda65d 0%, #b9904a 100%);
+    color: #16120d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.4rem;
+    font-weight: 800;
+    box-shadow: 0 10px 24px rgba(201, 162, 92, 0.16);
+    flex-shrink: 0;
+}
+
+.tag-delete-btn {
+    background: transparent;
+    border: 1px solid rgba(205, 136, 113, 0.45);
+    color: #d9a08a;
+    padding: 0.7rem 0.95rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .tag-delete-btn:hover {
+        border-color: rgba(230, 145, 116, 0.72);
+        color: #f1b09c;
+        background: rgba(121, 49, 36, 0.12);
+    }
+
+.tag-content {
+    margin-top: 1.35rem;
+    position: relative;
+    z-index: 1;
+}
+
+.tag-label {
+    color: #7d86a6;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    margin-bottom: 0.8rem;
+}
+
+.tag-name {
+    color: #d6aa5d;
+    font-size: 2rem;
+    font-weight: 700;
+    font-style: italic;
+    line-height: 1.15;
+    margin-bottom: 0.7rem;
+    word-break: break-word;
+}
+
+.tag-count {
+    color: #b9ab90;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+.tag-footer {
+    margin-top: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.tag-footer-line {
+    height: 1px;
+    width: 100%;
+    background: linear-gradient(90deg, rgba(210, 168, 95, 0.45) 0%, rgba(210, 168, 95, 0.04) 100%);
+}
+
+@media (max-width: 768px) {
+    .tags-page {
+        padding: 1.2rem 1rem;
+    }
+
+    .tags-header h1 {
+        font-size: 2.4rem;
+    }
+
+    .tags-grid {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+
+    .tag-card {
+        min-height: 290px;
+    }
+
+    .tag-icon {
+        width: 92px;
+        height: 92px;
+        font-size: 2rem;
+    }
+
+    .tag-name {
+        font-size: 1.7rem;
+    }
+
+    .tag-delete-btn {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.72rem;
+    }
+}
